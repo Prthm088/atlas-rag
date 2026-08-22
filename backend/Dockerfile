@@ -1,4 +1,4 @@
-FROM python:3.12-slim AS runtime
+FROM python:3.12-slim-trixie AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -6,6 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PORT=8000
 WORKDIR /app
 
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+    
 RUN addgroup --system atlas && adduser --system --ingroup atlas atlas
 COPY pyproject.toml ./
 COPY src ./src
