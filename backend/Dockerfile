@@ -9,7 +9,7 @@ WORKDIR /app
 RUN addgroup --system atlas && adduser --system --ingroup atlas atlas
 COPY pyproject.toml ./
 COPY src ./src
-RUN python -m pip install --no-cache-dir --upgrade pip setuptools \
+RUN python -m pip install --no-cache-dir --upgrade pip "setuptools>=78.1.1" \
     && python -m pip install --no-cache-dir .
 RUN mkdir -p /app/.data/storage && chown -R atlas:atlas /app
 
