@@ -10,7 +10,9 @@ RUN addgroup --system atlas && adduser --system --ingroup atlas atlas
 COPY pyproject.toml ./
 COPY src ./src
 RUN python -m pip install --no-cache-dir --upgrade pip "setuptools>=78.1.1" \
-    && python -m pip install --no-cache-dir .
+    && python -m pip install --no-cache-dir . \
+    && python -m pip uninstall --yes pip setuptools wheel \
+    && rm -rf /usr/local/lib/python3.12/ensurepip
 RUN mkdir -p /app/.data/storage && chown -R atlas:atlas /app
 
 USER atlas
