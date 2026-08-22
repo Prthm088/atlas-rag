@@ -1,4 +1,4 @@
-FROM node:22.14-alpine AS build
+FROM node:26.7-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -20,7 +20,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 RUN npm run build
 
-FROM node:22.14-alpine AS runtime
+FROM node:26.7-alpine AS runtime
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000
 WORKDIR /app
 RUN addgroup -S atlas && adduser -S atlas -G atlas
