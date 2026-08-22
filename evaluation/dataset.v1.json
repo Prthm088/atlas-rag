@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0",
+  "fixture": "fixtures/atlas-handbook.md",
+  "cases": [
+    {
+      "id": "hybrid-retrieval",
+      "question": "How does Atlas retrieve relevant evidence?",
+      "expected_terms": ["pgvector", "full-text", "reciprocal-rank fusion"],
+      "forbidden_terms": ["Moon"],
+      "expect_refusal": false
+    },
+    {
+      "id": "private-deletion",
+      "question": "What happens when a user deletes a document?",
+      "expected_terms": ["source object", "versions", "chunks", "citations"],
+      "forbidden_terms": ["shared with every user"],
+      "expect_refusal": false
+    },
+    {
+      "id": "durable-jobs",
+      "question": "How does ingestion behave after an interruption?",
+      "expected_terms": ["recover", "retry", "exponential backoff"],
+      "forbidden_terms": ["data is always lost"],
+      "expect_refusal": false
+    },
+    {
+      "id": "insufficient-evidence",
+      "question": "What is the office cafeteria menu for Friday?",
+      "expected_terms": [],
+      "forbidden_terms": ["pizza", "salad", "sandwich"],
+      "expect_refusal": true
+    }
+  ]
+}

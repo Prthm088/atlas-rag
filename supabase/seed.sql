@@ -1,0 +1,1 @@
+-- Production data is user-owned and is never seeded. Tests create isolated fixtures.
