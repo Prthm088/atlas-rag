@@ -11,12 +11,12 @@ This file is the persistent source of truth for the project. Update it whenever 
 
 ## Current state
 
-- Last updated: 2026-08-22
-- Current work item: 11.1 User-owned repository publication
-- Overall status: implementation and credential-free/local-service validation complete; production publication remains
-- Blocking issues: none in the codebase; production publication requires the user's free Supabase, Gemini, Render, Cloudflare, and GitHub configuration
+- Last updated: 2026-08-23
+- Current work item: 11.2 Complete remaining Render and Cloudflare configuration after hosted Supabase validation
+- Overall status: repository published; hosted Supabase migrated and connected locally; Render and Cloudflare publication remain
+- Blocking issues: none; a blank-label landing-page CTA is deferred until after the deployment path is complete
 - Last successful verification: 23 backend tests, 2 component tests, 4 desktop/mobile browser tests, frontend build, strict type/lint checks, both dependency audits, both production images, local Supabase migration, and authenticated isolation/lifecycle probes passed
-- Next action: create/choose the user's GitHub repository, commit and push this initial implementation, collect only the free-service configuration in `docs/setup.md`, then deploy and run the item 11 live checklist
+- Next action: commit and push the hosted-ingestion fixes and verification tracker, then continue Render deployment one user-operated step at a time
 
 ## Approved product decisions
 
@@ -133,9 +133,9 @@ This file is the persistent source of truth for the project. Update it whenever 
 
 ### 11. Publication
 
-- [ ] 11.1 Create or choose the user-owned GitHub repository, then commit and push the verified implementation.
-- [ ] 11.2 Obtain user-owned Supabase, Gemini, Render, and Cloudflare credentials/configuration only after local validation.
-- [ ] 11.3 Apply migrations and deploy the production services.
+- [x] 11.1 Create or choose the user-owned GitHub repository, then commit and push the verified implementation.
+- [~] 11.2 Obtain user-owned Supabase, Gemini, Render, and Cloudflare credentials/configuration only after local validation. Supabase and Gemini are configured locally; Render and Cloudflare remain.
+- [~] 11.3 Apply migrations and deploy the production services. The hosted Supabase migration and local backend connection are verified; service deployment remains.
 - [ ] 11.4 Verify registration, upload, ingestion, retrieval, memory, citations, and deletion on the live URL.
 - [ ] 11.5 Record the live URLs and deployment verification date.
 
@@ -144,6 +144,9 @@ This file is the persistent source of truth for the project. Update it whenever 
 - Resolved 2026-08-22: Docker Desktop was started with approval. Both images and the local Supabase stack now validate.
 - The first full Supabase start timed out only in its unused analytics container. Atlas's documented local command excludes `logflare,vector`; this does not disable the PostgreSQL pgvector extension. Auth, PostgreSQL, Storage, REST, and Studio then passed.
 - Production publication is intentionally deferred until the user supplies/authorizes the GitHub remote plus Supabase, Gemini, Render, and Cloudflare configuration in item 11.
+- Deferred 2026-08-23: the landing page's first dark CTA renders without visible label text; it does not block authentication/deployment validation and will be fixed after the publication path.
+- Resolved 2026-08-23: hosted ingestion reached publication but failed because the worker read rows from the preceding `document_versions` update instead of the `documents ... returning` update. The result assignment was corrected and regression-tested.
+- Resolved 2026-08-23: the next hosted retry exposed asyncpg's inability to infer polymorphic `jsonb_build_object` parameter types in the audit insert. Audit metadata is now serialized explicitly and cast to `jsonb`, with regression coverage.
 
 ## Verification log
 
@@ -159,6 +162,10 @@ This file is the persistent source of truth for the project. Update it whenever 
 - 2026-08-22: Final backend image returned HTTP 200 from both liveness and readiness when connected to the local database with complete validation settings.
 - 2026-08-22: `docker compose config` passed and the final desktop/mobile Chromium suite passed 4/4.
 - 2026-08-22: All validation containers, local Supabase services, localhost test servers, and Docker Desktop were stopped after verification.
+- 2026-08-23: GitHub publication and CI completed; the hosted Supabase migration applied successfully, the local backend readiness endpoint returned `status: ok`, and the frontend loaded against the hosted project.
+- 2026-08-23: Hosted email registration and authenticated workspace access passed. The ingestion publication regression test, Ruff, strict MyPy, and all 24 backend tests pass after correcting the publication result check.
+- 2026-08-23: The hosted fixture upload completed at 100% and reached `ready`; private Storage, parsing, Gemini embeddings, pgvector publication, audit insertion, and durable job completion are verified together.
+- 2026-08-23: Hosted hybrid retrieval and grounded chat passed: the answer contained pgvector, PostgreSQL full-text search, reciprocal-rank fusion, validated citation markers, and an authorized source-detail view.
 
 ## Resume protocol
 

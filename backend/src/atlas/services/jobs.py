@@ -305,7 +305,7 @@ class JobRunner:
                 for chunk, vector in zip(chunks, vectors, strict=True)
             ]
             await session.execute(statement, rows)
-            published = await session.execute(
+            await session.execute(
                 text(
                     """
                     update public.document_versions
@@ -326,7 +326,7 @@ class JobRunner:
                     "version_id": version_id,
                 },
             )
-            await session.execute(
+            published = await session.execute(
                 text(
                     """
                     update public.documents
@@ -361,15 +361,15 @@ class JobRunner:
                 text(
                     """
                     insert into public.audit_events (user_id, action, target_type, target_id, metadata)
-                    values (:user_id, 'document.indexed', 'document', :document_id,
-                            jsonb_build_object('chunk_count', :chunk_count, 'version_id', :version_id))
+                    values (:user_id, 'document.indexed', 'document', :document_id, cast(:metadata as jsonb))
                     """
                 ),
                 {
                     "user_id": details["user_id"],
                     "document_id": details["document_id"],
-                    "chunk_count": len(chunks),
-                    "version_id": version_id,
+                    "metadata": json.dumps(
+                        {"chunk_count": len(chunks), "version_id": str(version_id)}
+                    ),
                 },
             )
             await session.commit()
