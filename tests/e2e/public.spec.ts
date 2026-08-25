@@ -5,6 +5,9 @@ test('landing page presents the private grounded-RAG product', async ({ page }) 
   await expect(page.getByRole('heading', { name: /answers you can verify/i })).toBeVisible();
   await expect(page.getByText(/without mixing your data/i)).toBeVisible();
   await expect(page.getByRole('link', { name: /build my library/i })).toHaveAttribute('href', '/auth');
+  await page.getByRole('link', { name: /build my library/i }).click();
+  await expect(page).toHaveURL(/\/auth$/);
+  await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible();
 });
 
 test('authentication entry is keyboard-accessible', async ({ page }) => {

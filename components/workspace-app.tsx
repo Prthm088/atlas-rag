@@ -6,9 +6,9 @@ import {
   Loader2, LogOut, Menu, MessageSquare, MoreHorizontal, Plus, RefreshCw,
   Search, Settings, ShieldCheck, Sparkles, ThumbsDown, ThumbsUp, Trash2, Upload, X,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { ChangeEvent, FormEvent, Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { AnswerContent, citationSummary } from '@/components/answer-content';
 import { apiFetch, streamChat } from '@/lib/api';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { ApiList, Citation, Conversation, DocumentItem, IngestionJob, Message, Profile } from '@/lib/types';
@@ -37,22 +37,11 @@ function statusLabel(status: DocumentItem['status']): string {
   return ({ awaiting_upload: 'Awaiting upload', queued: 'Queued', processing: 'Indexing', ready: 'Ready', failed: 'Needs attention', deleting: 'Deleting' })[status];
 }
 
-function renderAnswer(content: string, citations: Citation[], onCitation: (citation: Citation) => void) {
-  const parts = content.split(/(\[C\d+\])/g);
-  return parts.map((part, index) => {
-    const match = part.match(/^\[C(\d+)\]$/);
-    if (!match) return <Fragment key={`${part}-${index}`}>{part}</Fragment>;
-    const citation = citations.find((item) => item.label === Number(match[1]));
-    return citation ? <button key={`${part}-${index}`} className="inline-citation" onClick={() => onCitation(citation)}>{match[1]}</button> : <span key={`${part}-${index}`}>{part}</span>;
-  });
-}
-
 function FullPageLoader({ label }: { label: string }) {
   return <main className="workspace-loader"><span className="brand-mark">A</span><Loader2 className="spin" /><p>{label}</p></main>;
 }
 
 export function WorkspaceApp() {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
   const messageEnd = useRef<HTMLDivElement>(null);
@@ -73,14 +62,14 @@ export function WorkspaceApp() {
     const supabase = getSupabase();
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session); setAuthReady(true);
-      if (!data.session) router.replace('/auth?next=/workspace');
+      if (!data.session) window.location.replace('/auth?next=/workspace');
     });
     const { data } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
-      if (!next) router.replace('/auth');
+      if (!next) window.location.replace('/auth');
     });
     return () => data.subscription.unsubscribe();
-  }, [router]);
+  }, []);
 
   const enabled = Boolean(session);
   const profile = useQuery({ queryKey: ['profile'], queryFn: () => apiFetch<Profile>('/account/me'), enabled });
@@ -212,12 +201,12 @@ export function WorkspaceApp() {
     } catch (error) { showError(error); }
   };
 
-  const signOut = async () => { await getSupabase().auth.signOut(); router.replace('/'); };
+  const signOut = async () => { await getSupabase().auth.signOut(); window.location.replace('/'); };
   const deleteAccount = async () => {
     if (deleteConfirmation !== 'DELETE MY ACCOUNT') return;
     try {
       await apiFetch('/account/me', { method: 'DELETE', body: JSON.stringify({ confirmation: deleteConfirmation }) });
-      await getSupabase().auth.signOut(); router.replace('/');
+      await getSupabase().auth.signOut(); window.location.replace('/');
     } catch (error) { showError(error); }
   };
 
@@ -225,6 +214,13 @@ export function WorkspaceApp() {
     const base = messages.data?.items ?? [];
     return streaming ? [...base, streaming.user, streaming.assistant] : base;
   }, [messages.data, streaming]);
+  const threadCitations = useMemo(() => {
+    const unique = new Map<string, Citation>();
+    for (const message of displayedMessages) {
+      for (const citation of message.citations) unique.set(citation.id, citation);
+    }
+    return [...unique.values()];
+  }, [displayedMessages]);
 
   if (!authReady) return <FullPageLoader label="Restoring your private workspace" />;
   if (!isSupabaseConfigured()) return <main className="configuration-page"><span className="brand-mark">A</span><h1>Atlas is built and awaiting configuration.</h1><p>Add the browser-safe Supabase values from <code>.env.example</code>, then reload.</p></main>;
@@ -257,10 +253,44 @@ export function WorkspaceApp() {
           <header className="content-header"><div><small>Research workspace</small><h2>{conversations.data?.items.find((item) => item.id === activeConversation)?.title ?? 'Ask your documents'}</h2></div><button className="header-action" onClick={() => setView('documents')}><BookOpen size={16} /> {documents.data?.items.filter((doc) => doc.status === 'ready').length ?? 0} ready sources</button></header>
           <div className="chat-layout">
             <section className="message-column">
-              {!activeConversation || (!messages.isLoading && displayedMessages.length === 0) ? <div className="chat-empty"><span className="spark-orbit"><Sparkles /></span><p className="eyebrow">Evidence first</p><h1>What do you want to understand?</h1><p>Ask across your ready documents. Atlas will answer only when it can show the evidence.</p><div className="prompt-suggestions"><button onClick={() => setQuestion('Summarize the main decisions in my documents.')}><span>01</span> Summarize the main decisions</button><button onClick={() => setQuestion('What risks or limitations are mentioned?')}><span>02</span> Find risks and limitations</button><button onClick={() => setQuestion('Which sources disagree with each other?')}><span>03</span> Compare the sources</button></div></div> : <div className="messages">{messages.isLoading && <div className="message-loading"><Loader2 className="spin" /> Loading conversation…</div>}{displayedMessages.map((message) => <article key={message.id} className={`message ${message.role}`}><div className="message-author">{message.role === 'assistant' ? <><span className="atlas-mini">A</span><strong>Atlas</strong><small>Grounded assistant</small></> : <><span className="user-mini">You</span></>}</div><div className="message-body">{message.role === 'assistant' ? renderAnswer(message.content, message.citations, setSelectedCitation) : message.content}{message.status === 'streaming' && <span className="typing-cursor" />}</div>{message.role === 'assistant' && message.status === 'completed' && <footer><span>{message.citations.length ? `${message.citations.length} cited source${message.citations.length > 1 ? 's' : ''}` : 'No citations required'}</span><div><button onClick={() => saveFeedback(message.id, 1)} aria-label="Helpful"><ThumbsUp size={14} /></button><button onClick={() => saveFeedback(message.id, -1)} aria-label="Not helpful"><ThumbsDown size={14} /></button></div></footer>}</article>)}<div ref={messageEnd} /></div>}
+              {!activeConversation || (!messages.isLoading && displayedMessages.length === 0) ? <div className="chat-empty"><span className="spark-orbit"><Sparkles /></span><p className="eyebrow">Evidence first</p><h1>What do you want to understand?</h1><p>Ask across your ready documents. Atlas will answer only when it can show the evidence.</p><div className="prompt-suggestions"><button onClick={() => setQuestion('Summarize the main decisions in my documents.')}><span>01</span> Summarize the main decisions</button><button onClick={() => setQuestion('What risks or limitations are mentioned?')}><span>02</span> Find risks and limitations</button><button onClick={() => setQuestion('Which sources disagree with each other?')}><span>03</span> Compare the sources</button></div></div> : <div className="messages">{messages.isLoading && <div className="message-loading"><Loader2 className="spin" /> Loading conversation…</div>}{displayedMessages.map((message) => <article key={message.id} className={`message ${message.role}`}><div className="message-author">{message.role === 'assistant' ? <><span className="atlas-mini">A</span><strong>Atlas</strong><small>Grounded assistant</small></> : <><span className="user-mini">You</span></>}</div><div className="message-body">{message.role === 'assistant' ? <AnswerContent content={message.content} citations={message.citations} onCitation={setSelectedCitation} /> : message.content}{message.status === 'streaming' && <span className="typing-cursor" />}</div>{message.role === 'assistant' && message.status === 'completed' && <footer><span>{citationSummary(message.content, message.citations)}</span><div><button onClick={() => saveFeedback(message.id, 1)} aria-label="Helpful"><ThumbsUp size={14} /></button><button onClick={() => saveFeedback(message.id, -1)} aria-label="Not helpful"><ThumbsDown size={14} /></button></div></footer>}</article>)}<div ref={messageEnd} /></div>}
               <form className="composer" onSubmit={sendQuestion}><textarea value={question} onChange={(e) => setQuestion(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} placeholder={documents.data?.items.some((doc) => doc.status === 'ready') ? 'Ask a question about your documents…' : 'Upload a document before asking…'} rows={1} disabled={Boolean(streaming)} /><div><span>Atlas answers only from your sources</span><button disabled={!question.trim() || Boolean(streaming) || !documents.data?.items.some((doc) => doc.status === 'ready')} type="submit" aria-label="Send question">{streaming ? <Loader2 className="spin" size={18} /> : <ArrowUp size={18} />}</button></div></form>
             </section>
-            <aside className={`evidence-panel ${selectedCitation ? 'selected' : ''}`}><header><div><small>Evidence</small><h3>{selectedCitation ? 'Source detail' : 'Citations appear here'}</h3></div>{selectedCitation && <button onClick={() => setSelectedCitation(null)} aria-label="Close source"><X size={17} /></button>}</header>{selectedCitation ? <div className="citation-detail"><span className="file-badge"><FileText /></span><p className="eyebrow">Citation {selectedCitation.label}</p><h4>{selectedCitation.document_name}</h4><p className="source-location">{selectedCitation.page_start ? `Page ${selectedCitation.page_start}${selectedCitation.page_end && selectedCitation.page_end !== selectedCitation.page_start ? `–${selectedCitation.page_end}` : ''}` : 'Document section'}{selectedCitation.section_path.length ? ` · ${selectedCitation.section_path.join(' › ')}` : ''}</p><blockquote>{selectedCitation.quote}</blockquote><button className="secondary-button" onClick={() => openSource(selectedCitation)}>Open original <ChevronRight size={15} /></button></div> : <div className="evidence-empty"><ShieldCheck /><p>Every citation is checked against an authorized chunk before it is saved.</p></div>}</aside>
+            <aside className={`evidence-panel ${selectedCitation ? 'selected' : ''}`}>
+              <header>
+                <div>
+                  <small>Evidence</small>
+                  <h3>{selectedCitation ? 'Source detail' : threadCitations.length ? 'Sources in this thread' : 'Citations appear here'}</h3>
+                </div>
+                {selectedCitation && <button onClick={() => setSelectedCitation(null)} aria-label="Close source"><X size={17} /></button>}
+              </header>
+              {selectedCitation ? (
+                <div className="citation-detail">
+                  <span className="file-badge"><FileText /></span>
+                  <p className="eyebrow">Citation {selectedCitation.label}</p>
+                  <h4>{selectedCitation.document_name}</h4>
+                  <p className="source-location">{selectedCitation.page_start ? `Page ${selectedCitation.page_start}${selectedCitation.page_end && selectedCitation.page_end !== selectedCitation.page_start ? `–${selectedCitation.page_end}` : ''}` : 'Document section'}{selectedCitation.section_path.length ? ` · ${selectedCitation.section_path.join(' › ')}` : ''}</p>
+                  <blockquote>{selectedCitation.quote}</blockquote>
+                  <button className="secondary-button" onClick={() => openSource(selectedCitation)}>Open original <ChevronRight size={15} /></button>
+                </div>
+              ) : threadCitations.length ? (
+                <div className="evidence-list">
+                  <p>Select a source to inspect the exact passage used in the answer.</p>
+                  {threadCitations.map((citation) => (
+                    <button key={citation.id} onClick={() => setSelectedCitation(citation)} type="button">
+                      <span>{citation.label}</span>
+                      <div>
+                        <strong>{citation.document_name}</strong>
+                        <small>{citation.page_start ? `Page ${citation.page_start}` : citation.section_path.at(-1) || 'Document section'}</small>
+                      </div>
+                      <ChevronRight size={14} />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="evidence-empty"><ShieldCheck /><p>Every citation is checked against an authorized chunk before it is saved.</p></div>
+              )}
+            </aside>
           </div>
         </>}
 

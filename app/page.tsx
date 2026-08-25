@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 const sourceCards = [
   { title: 'Architecture handbook', meta: 'PDF · 42 pages', tone: 'lime' },
   { title: 'Product decisions', meta: 'DOCX · Updated today', tone: 'violet' },
@@ -16,8 +14,8 @@ export default function Home() {
         </a>
         <nav className="top-actions" aria-label="Account navigation">
           <span className="system-status"><i /> Systems ready</span>
-          <Link className="ghost-button" href="/auth">Sign in</Link>
-          <Link className="primary-button" href="/auth">Create account</Link>
+          <a className="ghost-button" href="/auth">Sign in</a>
+          <a className="primary-button" href="/auth">Create account</a>
         </nav>
       </header>
 
@@ -30,7 +28,7 @@ export default function Home() {
             back to the exact source—without mixing your data with anyone else’s.
           </p>
           <div className="hero-actions">
-            <Link className="primary-button large" href="/auth">Build my library <span>→</span></Link>
+            <a className="primary-button large" href="/auth">Build my library <span>→</span></a>
             <a href="#workspace">Explore the workspace</a>
           </div>
           <dl className="trust-row">

@@ -11,12 +11,12 @@ This file is the persistent source of truth for the project. Update it whenever 
 
 ## Current state
 
-- Last updated: 2026-08-23
-- Current work item: 11.2 Complete remaining Render and Cloudflare configuration after hosted Supabase validation
-- Overall status: repository published; hosted Supabase migrated and connected locally; Render and Cloudflare publication remain
+- Last updated: 2026-08-25
+- Current work item: 11.4 Verify the authenticated workflow on the live Cloudflare URL
+- Overall status: repository, Supabase, Render backend, and direct Cloudflare frontend are published; live authentication/chat work, and the locally verified answer/citation UI correction remains to be published
 - Blocking issues: none; a blank-label landing-page CTA is deferred until after the deployment path is complete
-- Last successful verification: 23 backend tests, 2 component tests, 4 desktop/mobile browser tests, frontend build, strict type/lint checks, both dependency audits, both production images, local Supabase migration, and authenticated isolation/lifecycle probes passed
-- Next action: commit and push the hosted-ingestion fixes and verification tracker, then continue Render deployment one user-operated step at a time
+- Last successful verification: 24 backend tests, 2 component tests, 4 desktop/mobile browser tests, frontend build, strict type/lint checks, both dependency audits, both production images, local Supabase migration, authenticated isolation/lifecycle probes, and the corrected Worker production bundle's landing-to-auth navigation passed
+- Next action: publish the verified answer-rendering and grouped-citation fix to GitHub/Render and Cloudflare, then ask one new cited question on the live URL
 
 ## Approved product decisions
 
@@ -134,9 +134,9 @@ This file is the persistent source of truth for the project. Update it whenever 
 ### 11. Publication
 
 - [x] 11.1 Create or choose the user-owned GitHub repository, then commit and push the verified implementation.
-- [~] 11.2 Obtain user-owned Supabase, Gemini, Render, and Cloudflare credentials/configuration only after local validation. Supabase and Gemini are configured locally; Render and Cloudflare remain.
-- [~] 11.3 Apply migrations and deploy the production services. The hosted Supabase migration and local backend connection are verified; service deployment remains.
-- [ ] 11.4 Verify registration, upload, ingestion, retrieval, memory, citations, and deletion on the live URL.
+- [x] 11.2 Obtain user-owned Supabase, Gemini, Render, and Cloudflare credentials/configuration only after local validation. Supabase, Gemini, and Render are configured; the user has authenticated Wrangler with their Cloudflare account.
+- [x] 11.3 Apply migrations and deploy the production services. Hosted Supabase, Render, and the direct Cloudflare Worker-with-Assets frontend are healthy.
+- [~] 11.4 Verify registration, upload, ingestion, retrieval, memory, citations, and deletion on the live URL. Public navigation is verified; authenticated workflow verification remains.
 - [ ] 11.5 Record the live URLs and deployment verification date.
 
 ## Blocker log
@@ -147,6 +147,9 @@ This file is the persistent source of truth for the project. Update it whenever 
 - Deferred 2026-08-23: the landing page's first dark CTA renders without visible label text; it does not block authentication/deployment validation and will be fixed after the publication path.
 - Resolved 2026-08-23: hosted ingestion reached publication but failed because the worker read rows from the preceding `document_versions` update instead of the `documents ... returning` update. The result assignment was corrected and regression-tested.
 - Resolved 2026-08-23: the next hosted retry exposed asyncpg's inability to infer polymorphic `jsonb_build_object` parameter types in the audit insert. Audit metadata is now serialized explicitly and cast to `jsonb`, with regression coverage.
+- Rolled back 2026-08-25: an unintended owner-only OpenAI Sites deployment created a `chatgpt.site` URL. Its stored environment configuration was cleared, and the Sites Vite plugin, dependency, and `.openai/hosting.json` were removed locally. The available deployment connector did not expose remote-site deletion; the old deployment remains private and is not the production target. No backend secret was provided to it.
+- Resolved locally 2026-08-25; production redeploy pending: Vinext `1.0.0-beta.3` emitted a broken production `next/link`/soft-navigation chunk (`RSC prefetch setup error` followed by `TypeError: e is not a function`). Route boundaries now use standard same-origin browser navigation, including safe validation of the post-login `next` path. The rebuilt Worker navigates from landing to auth, and authenticated UI state buttons hydrate without console errors.
+- Resolved locally 2026-08-25; production publication pending: long answers displayed raw Markdown, grouped markers such as `[C2, C3]` were not persisted as citations, the evidence rail was empty until a marker was clicked, and long conversation titles caused horizontal overflow. Answers now render as structured prose/lists, grouped markers are normalized and validated server-side, saved sources populate the evidence rail, unavailable legacy links are identified honestly, and sidebar overflow is contained.
 
 ## Verification log
 
@@ -166,6 +169,12 @@ This file is the persistent source of truth for the project. Update it whenever 
 - 2026-08-23: Hosted email registration and authenticated workspace access passed. The ingestion publication regression test, Ruff, strict MyPy, and all 24 backend tests pass after correcting the publication result check.
 - 2026-08-23: The hosted fixture upload completed at 100% and reached `ready`; private Storage, parsing, Gemini embeddings, pgvector publication, audit insertion, and durable job completion are verified together.
 - 2026-08-23: Hosted hybrid retrieval and grounded chat passed: the answer contained pgvector, PostgreSQL full-text search, reciprocal-rank fusion, validated citation markers, and an authorized source-detail view.
+- 2026-08-25: The Render Docker deployment completed and both the root endpoint and `/api/v1/ready` returned HTTP 200 with complete production configuration.
+- 2026-08-25: The managed Sites integration was removed. ESLint, strict TypeScript, 2 Vitest tests, and the Vinext production build passed. The generated `dist/server/wrangler.json` is a direct Cloudflare Worker-with-Assets configuration named `atlas-rag` with no OpenAI Sites, D1, or R2 binding.
+- 2026-08-25: Direct deployment completed at `https://atlas-rag.prthm088.workers.dev`; Render CORS and Supabase Auth URL configuration were updated for that origin, and Render readiness remained healthy.
+- 2026-08-25: The live non-working buttons were reproduced and traced to Vinext's generated client router, then reproduced in the local production Worker bundle. After replacing only cross-route soft navigation with full same-origin navigation, the rebuilt Worker reached `/auth`, switched the auth card to registration mode, and logged no browser errors. ESLint, strict TypeScript, and 2 Vitest tests pass.
+- 2026-08-25: The corrected build was redeployed to the user-owned Cloudflare Worker. The live landing CTA navigated to `/auth`, the registration-mode control hydrated successfully, and the browser console contained no warnings or errors.
+- 2026-08-25: Live authentication, the persisted workspace, grounded answers, and insufficient-evidence behavior were visibly confirmed. The answer/citation redesign then passed frontend lint, strict TypeScript, 3 component tests, the Vinext production build, backend Ruff, strict MyPy, 5 focused retrieval/chat tests, and all 23 non-environment-dependent backend tests. The two excluded health tests intentionally require an unconfigured process, while this workstation's backend `.env` is configured for the hosted stack.
 
 ## Resume protocol
 

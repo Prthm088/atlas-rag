@@ -20,7 +20,8 @@ from atlas.services.retrieval import (
 )
 
 logger = structlog.get_logger("chat")
-CITATION_PATTERN = re.compile(r"\[C(\d+)\]")
+CITATION_GROUP_PATTERN = re.compile(r"\[(C\d+(?:\s*,\s*C\d+)*)\]")
+CITATION_LABEL_PATTERN = re.compile(r"C(\d+)")
 
 
 def sse_event(event: str, data: dict[str, object]) -> str:
@@ -80,15 +81,19 @@ def _validate_citations(content: str, evidence: list[Evidence]) -> tuple[str, li
     seen: set[int] = set()
 
     def replace(match: re.Match[str]) -> str:
-        index = int(match.group(1))
-        if index < 1 or index > len(evidence):
-            return "[citation unavailable]"
-        if index not in seen:
-            seen.add(index)
-            valid.append((index, evidence[index - 1]))
-        return match.group(0)
+        markers: list[str] = []
+        for raw_index in CITATION_LABEL_PATTERN.findall(match.group(1)):
+            index = int(raw_index)
+            if index < 1 or index > len(evidence):
+                markers.append("[citation unavailable]")
+                continue
+            if index not in seen:
+                seen.add(index)
+                valid.append((index, evidence[index - 1]))
+            markers.append(f"[C{index}]")
+        return " ".join(markers)
 
-    canonical = CITATION_PATTERN.sub(replace, content)
+    canonical = CITATION_GROUP_PATTERN.sub(replace, content)
     valid.sort(key=lambda item: item[0])
     return canonical, valid
 

@@ -68,6 +68,19 @@ def test_invalid_citation_markers_are_neutralized() -> None:
     assert used == [(1, source)]
 
 
+def test_grouped_citation_markers_are_normalized_and_validated() -> None:
+    first = evidence(name="first.md")
+    second = evidence(name="second.md")
+
+    content, used = _validate_citations(
+        "Supported by both [C1, C2], repeated [C2], fabricated [C9].",
+        [first, second],
+    )
+
+    assert content == "Supported by both [C1] [C2], repeated [C2], fabricated [citation unavailable]."
+    assert used == [(1, first), (2, second)]
+
+
 def test_sse_event_is_well_formed() -> None:
     frame = sse_event("token", {"text": "hello"})
     assert frame.startswith("event: token\n")

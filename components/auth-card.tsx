@@ -1,8 +1,8 @@
 'use client';
 
+/* eslint-disable @next/next/no-html-link-for-pages -- Vinext beta soft navigation is broken in the production Worker bundle. */
+
 import { ArrowRight, CheckCircle2, Loader2, LockKeyhole, Mail } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { Turnstile } from '@/components/turnstile';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase';
@@ -10,8 +10,6 @@ import { getSupabase, isSupabaseConfigured } from '@/lib/supabase';
 type Mode = 'login' | 'register' | 'forgot' | 'update';
 
 export function AuthCard({ initialMode = 'login' }: { initialMode?: Mode }) {
-  const router = useRouter();
-  const search = useSearchParams();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,7 +35,11 @@ export function AuthCard({ initialMode = 'login' }: { initialMode?: Mode }) {
           options: captchaToken ? { captchaToken } : undefined,
         });
         if (result.error) throw result.error;
-        router.replace(search.get('next') || '/workspace');
+        const requestedPath = new URLSearchParams(window.location.search).get('next');
+        const nextPath = requestedPath?.startsWith('/') && !requestedPath.startsWith('//')
+          ? requestedPath
+          : '/workspace';
+        window.location.replace(nextPath);
       } else if (mode === 'register') {
         const result = await auth.signUp({
           email,
@@ -72,7 +74,7 @@ export function AuthCard({ initialMode = 'login' }: { initialMode?: Mode }) {
 
   return (
     <main className="auth-page">
-      <Link className="brand auth-brand" href="/"><span className="brand-mark">A</span><span>Atlas</span></Link>
+      <a className="brand auth-brand" href="/"><span className="brand-mark">A</span><span>Atlas</span></a>
       <section className="auth-card">
         <div className="auth-icon"><LockKeyhole size={20} /></div>
         <p className="eyebrow">Private by account</p>
