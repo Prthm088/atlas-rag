@@ -12,11 +12,11 @@ This file is the persistent source of truth for the project. Update it whenever 
 ## Current state
 
 - Last updated: 2026-08-25
-- Current work item: 11.4 Finish live authenticated-workflow acceptance and publish the fixed workspace scrolling behavior
-- Overall status: repository, Supabase, Render backend, and direct Cloudflare frontend are published; live authentication, ingestion, retrieval, memory, and citations work, and the locally verified fixed-viewport workspace layout remains to be published
-- Blocking issues: none; a blank-label landing-page CTA is deferred until after the deployment path is complete
-- Last successful verification: frontend lint, strict TypeScript, 3 component tests, production build, and the fixed-shell regression in desktop/mobile Chromium pass; prior backend, security, container, migration, and authenticated production checks remain green
-- Next action: publish the viewport-shell fix to GitHub and Cloudflare, verify a long live conversation scrolls only in its center pane, then finish the remaining live deletion acceptance
+- Current work item: publish the corrected landing-page CTA, then finish the remaining live deletion acceptance
+- Overall status: repository, Supabase, Render backend, and direct Cloudflare frontend are published; live authentication, ingestion, retrieval, memory, citations, and fixed-viewport conversation scrolling work correctly, and the corrected landing CTA is pending Cloudflare publication
+- Blocking issues: none; the blank-label landing-page CTA is resolved locally and pending its Cloudflare publication
+- Last successful verification: frontend lint, strict TypeScript, production build, the fixed-shell regression, and the CTA contrast regression in desktop/mobile Chromium pass; prior backend, security, container, migration, and authenticated production checks remain green
+- Next action: publish the corrected CTA to Cloudflare, verify it on the live landing page, then verify document/conversation deletion and record the final production acceptance in item 11.5
 
 ## Approved product decisions
 
@@ -136,7 +136,7 @@ This file is the persistent source of truth for the project. Update it whenever 
 - [x] 11.1 Create or choose the user-owned GitHub repository, then commit and push the verified implementation.
 - [x] 11.2 Obtain user-owned Supabase, Gemini, Render, and Cloudflare credentials/configuration only after local validation. Supabase, Gemini, and Render are configured; the user has authenticated Wrangler with their Cloudflare account.
 - [x] 11.3 Apply migrations and deploy the production services. Hosted Supabase, Render, and the direct Cloudflare Worker-with-Assets frontend are healthy.
-- [~] 11.4 Verify registration, upload, ingestion, retrieval, memory, citations, and deletion on the live URL. Registration through cited multi-turn chat is verified; deletion and the pending viewport-layout redeploy remain.
+- [~] 11.4 Verify registration, upload, ingestion, retrieval, memory, citations, and deletion on the live URL. Registration through cited multi-turn chat and long-conversation scrolling are verified; deletion remains.
 - [ ] 11.5 Record the live URLs and deployment verification date.
 
 ## Blocker log
@@ -150,7 +150,8 @@ This file is the persistent source of truth for the project. Update it whenever 
 - Rolled back 2026-08-25: an unintended owner-only OpenAI Sites deployment created a `chatgpt.site` URL. Its stored environment configuration was cleared, and the Sites Vite plugin, dependency, and `.openai/hosting.json` were removed locally. The available deployment connector did not expose remote-site deletion; the old deployment remains private and is not the production target. No backend secret was provided to it.
 - Resolved and deployed 2026-08-25: Vinext `1.0.0-beta.3` emitted a broken production `next/link`/soft-navigation chunk (`RSC prefetch setup error` followed by `TypeError: e is not a function`). Route boundaries now use standard same-origin browser navigation, including safe validation of the post-login `next` path. The live Worker navigates from landing to auth, and authenticated UI state buttons hydrate without console errors.
 - Resolved and deployed 2026-08-25: long answers displayed raw Markdown, grouped markers such as `[C2, C3]` were not persisted as citations, the evidence rail was empty until a marker was clicked, and long conversation titles caused horizontal overflow. Answers now render as structured prose/lists, grouped markers are normalized and validated server-side, saved sources populate the evidence rail, unavailable legacy links are identified honestly, and sidebar horizontal overflow is contained.
-- Resolved locally 2026-08-25; Cloudflare publication pending: long conversations expanded the document instead of the center message pane, carrying the side rails upward. The authenticated shell is now locked to the dynamic viewport, grid/flex children can shrink correctly, messages and evidence scroll internally, the mobile drawer remains viewport-anchored, and document/settings pages keep their own internal scrolling.
+- Resolved, deployed, and live-verified 2026-08-25: long conversations expanded the document instead of the center message pane, carrying the side rails upward. The authenticated shell is now locked to the dynamic viewport, grid/flex children can shrink correctly, messages and evidence scroll internally, the mobile drawer remains viewport-anchored, and document/settings pages keep their own internal scrolling.
+- Resolved locally 2026-08-30; Cloudflare publication pending: the landing page's `Build my library` CTA label was black on a dark background because `.hero-actions a` overrode the button's white text color with higher CSS specificity. The CTA now explicitly retains white text, with browser regression coverage.
 
 ## Verification log
 
@@ -177,6 +178,8 @@ This file is the persistent source of truth for the project. Update it whenever 
 - 2026-08-25: The corrected build was redeployed to the user-owned Cloudflare Worker. The live landing CTA navigated to `/auth`, the registration-mode control hydrated successfully, and the browser console contained no warnings or errors.
 - 2026-08-25: Live authentication, the persisted workspace, grounded answers, and insufficient-evidence behavior were visibly confirmed. The answer/citation redesign then passed frontend lint, strict TypeScript, 3 component tests, the Vinext production build, backend Ruff, strict MyPy, 5 focused retrieval/chat tests, and all 23 non-environment-dependent backend tests. The two excluded health tests intentionally require an unconfigured process, while this workstation's backend `.env` is configured for the hosted stack.
 - 2026-08-25: The fixed-viewport workspace layout passed ESLint, strict TypeScript, the Vinext production build, and a dedicated Playwright regression in both desktop and mobile Chromium. The test proves a long conversation overflows and scrolls inside `.messages`, the document stays at viewport height with `window.scrollY === 0`, the composer remains in bounds, and the desktop side/evidence rails retain their positions.
+- 2026-08-25: Commit `37dd8e9` was pushed and deployed to the user-owned Cloudflare Worker. After a hard refresh, the user confirmed on the live authenticated workspace that a long conversation scrolls only in the center pane and the sidebar remains fixed.
+- 2026-08-30: The landing CTA color conflict was corrected locally. ESLint, strict TypeScript, the Vinext production build, and the public browser suite passed 4/4 across desktop and mobile Chromium; the rendered button visibly shows `Build my library` with white text on its dark background.
 
 ## Resume protocol
 

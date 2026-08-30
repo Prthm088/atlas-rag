@@ -4,8 +4,10 @@ test('landing page presents the private grounded-RAG product', async ({ page }) 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /answers you can verify/i })).toBeVisible();
   await expect(page.getByText(/without mixing your data/i)).toBeVisible();
-  await expect(page.getByRole('link', { name: /build my library/i })).toHaveAttribute('href', '/auth');
-  await page.getByRole('link', { name: /build my library/i }).click();
+  const libraryCta = page.getByRole('link', { name: /build my library/i });
+  await expect(libraryCta).toHaveAttribute('href', '/auth');
+  await expect.poll(() => libraryCta.evaluate((element) => getComputedStyle(element).color)).toBe('rgb(255, 255, 255)');
+  await libraryCta.click();
   await expect(page).toHaveURL(/\/auth$/);
   await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible();
 });
